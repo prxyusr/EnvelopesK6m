@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kiley</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            obsidian: {
+              950: '#070506',
+              900: '#0c0809',
+              850: '#120b0d',
+              800: '#190f12',
+            },
+            crimson: {
+              950: '#450a0a',
+              900: '#7f1d1d',
+              800: '#991b1b',
+              700: '#b91c1c',
+              600: '#dc2626',
+              500: '#ef4444',
+            },
+            vaultBorder: '#26171a',
+            vaultHover: '#3d2227',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Subtle Animations & Dark Crimson Glassmorphism */
+    body {
+      background-color: #070506;
+      color: #ffffff;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+    }
+
+    .glass-panel {
+      background: rgba(18, 11, 13, 0.78);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid #26171a;
+    }
+
+    .glass-card {
+      background: linear-gradient(145deg, rgba(25, 15, 18, 0.88) 0%, rgba(12, 8, 9, 0.94) 100%);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid #26171a;
+      transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .glass-card:hover {
+      border-color: rgba(185, 28, 28, 0.55);
+      transform: translateY(-3px);
+      box-shadow: 0 14px 34px -8px rgba(153, 27, 27, 0.25), 0 4px 16px -4px rgba(255, 255, 255, 0.05);
+    }
+
+    .glass-card.locked-card:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+      box-shadow: 0 12px 32px -8px rgba(127, 29, 29, 0.2);
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-10px); }
+      40% { transform: translateX(10px); }
+      60% { transform: translateX(-7px); }
+      80% { transform: translateX(7px); }
+    }
+
+    .animate-shake {
+      animation: shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+
+    @keyframes breathe {
+      0%, 100% {
+        transform: scale(0.85);
+        opacity: 0.6;
+        box-shadow: 0 0 22px rgba(153, 27, 27, 0.3);
+      }
+      50% {
+        transform: scale(1.18);
+        opacity: 1;
+        box-shadow: 0 0 48px rgba(220, 38, 38, 0.6);
+      }
+    }
+
+    .animate-breathe {
+      animation: breathe 6s ease-in-out infinite;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #070506;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #26171a;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #7f1d1d;
+    }
+
+    /* Ambient Dark Crimson & White Glows (Zero Purple) */
+    .ambient-orb-1 {
+      position: fixed;
+      top: -10%;
+      left: -5%;
+      width: 44vw;
+      height: 44vw;
+      max-width: 540px;
+      max-height: 540px;
+      background: radial-gradient(circle, rgba(153, 27, 27, 0.18) 0%, rgba(7, 5, 6, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .ambient-orb-2 {
+      position: fixed;
+      bottom: -12%;
+      right: -5%;
+      width: 46vw;
+      height: 46vw;
+      max-width: 560px;
+      max-height: 560px;
+      background: radial-gradient(circle, rgba(127, 29, 29, 0.15) 0%, rgba(7, 5, 6, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased selection:bg-crimson-800/50 selection:text-white">
+
+  <!-- Ambient Background Lights -->
+  <div class="ambient-orb-1"></div>
+  <div class="ambient-orb-2"></div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Top Utility Bar (Lock Button Only when Unlocked) -->
+  <div class="fixed top-4 right-4 z-40 flex items-center gap-2">
+    <button id="lock-vault-btn" onclick="lockVault()" title="Lock Vault" class="hidden glass-panel hover:border-crimson-700 text-zinc-300 hover:text-white px-3.5 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 transition shadow-lg">
+      <svg class="w-3.5 h-3.5 text-crimson-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+      </svg>
+      <span>Lock Vault</span>
+    </button>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 1: LOCK SCREEN ENTRY (PASSCODE: 052226 — NO HINT)                -->
+  <!-- ===================================================================== -->
+  <section id="lock-screen" class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-10 transition-all duration-500">
+    <div id="keypad-card" class="glass-panel w-full max-w-sm rounded-3xl p-7 sm:p-8 shadow-2xl border border-vaultBorder">
+      
+      <!-- Vault Status Badge -->
+      <div class="flex justify-center mb-5">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-obsidian-950/90 border border-vaultBorder text-[11px] font-mono text-zinc-400">
+          <span class="w-2 h-2 rounded-full bg-crimson-600 animate-pulse"></span>
+          <span>PRIVATE VAULT // 06M</span>
+        </div>
+      </div>
+
+      <!-- Header -->
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-crimson-900/40 to-obsidian-950 border border-crimson-800/50 flex items-center justify-center shadow-inner">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+        </div>
+        <h1 class="text-xl font-semibold tracking-tight text-white">
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-200 to-crimson-500">Kiley</span>
+        </h1>
+        <p class="text-xs text-zinc-400 mt-1">Enter 6-digit PIN to unlock</p>
+      </div>
+
+      <!-- PIN Dots Display (6 Digits) -->
+      <div id="pin-dots" class="flex justify-center gap-3.5 mb-6">
+        <div class="pin-dot w-3.5 h-3.5 rounded-full border border-zinc-600 bg-transparent transition-all duration-200"></div>
+        <div class="pin-dot w-3.5 h-3.5 rounded-full border border-zinc-600 bg-transparent transition-all duration-200"></div>
+        <div class="pin-dot w-3.5 h-3.5 rounded-full border border-zinc-600 bg-transparent transition-all duration-200"></div>
+        <div class="pin-dot w-3.5 h-3.5 rounded-full border border-zinc-600 bg-transparent transition-all duration-200"></div>
+        <div class="pin-dot w-3.5 h-3.5 rounded-full border border-zinc-600 bg-transparent transition-all duration-200"></div>
+        <div class="pin-dot w-3.5 h-3.5 rounded-full border border-zinc-600 bg-transparent transition-all duration-200"></div>
+      </div>
+
+      <!-- Error / Status Text -->
+      <p id="pin-feedback" class="text-center text-xs font-mono h-4 mb-5 text-zinc-500">LOCKED</p>
+
+      <!-- Tactile Keypad Grid -->
+      <div class="grid grid-cols-3 gap-3 max-w-[260px] mx-auto">
+        <button onclick="pressKey('1')" class="keypad-btn h-14 rounded-2xl bg-obsidian-850/90 hover:bg-crimson-950/50 active:scale-95 border border-vaultBorder hover:border-crimson-800/70 text-lg font-medium text-white transition flex items-center justify-center">1</button>
+        <button onclick="pressKey('2')" class="keypad-btn h-14 rounded-2xl bg-obsidian-850/90 hover:bg-crimson-950/50 active:scale-95 border border-vaultBorder hover:border-crimson-800/70 text-lg font-medium text-white transition flex items-center justify-center">2</button>
+        <button onclick="pressKey('3')" class="keypad-btn h-14 rounded-2xl bg-obsidian-850/90 hover:bg-crimson-950/50 active:scale-95 border border-vaultBorder hover:border-crimson-800/70 text-lg font-medium text-white transition flex items-center justify-center">3</button>
+        <button onclick="pressKey('4')" class="keypad-btn h-14 rounded-2xl bg-obsidian-850/90 hover:bg-crimson-950/50 active:scale-95 border border-vaultBorder hover:border-crimson-800/70 text-lg font-medium text-white transition flex items-center justify-center">4</button>
+        <button onclick="pressKey('5')" class="keypad-btn h-14 rounded-2xl bg-obsidian-850/90 hover:bg-crimson-950/50 active:scale-95 border border-vaultBorder hover:border-crimson-800/70 text-lg font-medium text-white transition flex items-center justify-center">5</button>
+        <button onclick="pressKey('6')" class="keypad-btn h-14 rounded-2xl bg-obsidian-850/90 hover:bg-crimson-950/50 active:scale-95 border border-vaultBorder hover:border-crimson-800/70 text-lg font-medium text-white transition flex items-center justify-center">6</button>
+        <button onclick="pressKey('7')" class="keypad-btn h-14 rounded-2xl bg-obsidian-850/90 hover:bg-crimson-950/50 active:scale-95 border border-vaultBorder hover:border-crimson-800/70 text-lg font-medium text-white transition flex items-center justify-center">7</button>
+        <button onclick="pressKey('8')" class="keypad-btn h-14 rounded-2xl bg-obsidian-850/90 hover:bg-crimson-950/50 active:scale-95 border border-vaultBorder hover:border-crimson-800/70 text-lg font-medium text-white transition flex items-center justify-center">8</button>
+        <button onclick="pressKey('9')" class="keypad-btn h-14 rounded-2xl bg-obsidian-850/90 hover:bg-crimson-950/50 active:scale-95 border border-vaultBorder hover:border-crimson-800/70 text-lg font-medium text-white transition flex items-center justify-center">9</button>
+        <button onclick="clearPin()" class="h-14 rounded-2xl bg-transparent hover:bg-obsidian-850 active:scale-95 text-xs font-mono text-zinc-400 hover:text-white transition flex items-center justify-center">CLR</button>
+        <button onclick="pressKey('0')" class="keypad-btn h-14 rounded-2xl bg-obsidian-850/90 hover:bg-crimson-950/50 active:scale-95 border border-vaultBorder hover:border-crimson-800/70 text-lg font-medium text-white transition flex items-center justify-center">0</button>
+        <button onclick="backspacePin()" aria-label="Backspace" class="h-14 rounded-2xl bg-transparent hover:bg-obsidian-850 active:scale-95 text-zinc-400 hover:text-white transition flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 2: MAIN DIGITAL VAULT DASHBOARD                                  -->
+  <!-- ===================================================================== -->
+  <main id="vault-dashboard" class="hidden relative z-10 max-w-5xl mx-auto px-4 sm:px-6 pt-16 pb-20 opacity-0 transition-opacity duration-700">
+    
+    <!-- Header & Live Relationship Counter -->
+    <header class="glass-panel rounded-3xl p-6 sm:p-8 mb-8 border border-vaultBorder relative overflow-hidden">
+      <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-crimson-900 via-crimson-600 to-white opacity-90"></div>
+      
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div>
+          <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-crimson-950/80 border border-crimson-800/50 text-crimson-500 text-xs font-mono mb-3">
+            <span class="w-1.5 h-1.5 rounded-full bg-crimson-500 animate-ping"></span>
+            <span>6 MONTHS TOGETHER</span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-white to-crimson-500">Kiley</span>
+          </h1>
+          <p class="text-sm text-zinc-400 mt-1.5 max-w-lg">
+            I have no comprehension in gift giving so I made this for you baby.  I hope it's good enough for you.
+          </p>
+        </div>
+
+        <!-- Live Ticking Relationship Counter (Since May 22, 2026) -->
+        <div class="bg-obsidian-950/90 border border-vaultBorder rounded-2xl p-4 sm:p-5 shrink-0">
+          <div class="flex items-center justify-between gap-4 mb-2">
+            <span class="text-[11px] font-mono uppercase tracking-wider text-zinc-400">Time Together</span>
+            <span class="text-[11px] font-mono text-crimson-500">Since May 22, 2026</span>
+          </div>
+          <div class="grid grid-cols-4 gap-2 sm:gap-3 text-center">
+            <div class="bg-obsidian-850 border border-vaultBorder rounded-xl px-2.5 py-2 min-w-[58px]">
+              <div id="counter-days" class="text-lg sm:text-xl font-mono font-bold text-white">185</div>
+              <div class="text-[10px] font-mono text-zinc-500 uppercase">Days</div>
+            </div>
+            <div class="bg-obsidian-850 border border-vaultBorder rounded-xl px-2.5 py-2 min-w-[58px]">
+              <div id="counter-hours" class="text-lg sm:text-xl font-mono font-bold text-white">00</div>
+              <div class="text-[10px] font-mono text-zinc-500 uppercase">Hrs</div>
+            </div>
+            <div class="bg-obsidian-850 border border-vaultBorder rounded-xl px-2.5 py-2 min-w-[58px]">
+              <div id="counter-mins" class="text-lg sm:text-xl font-mono font-bold text-white">00</div>
+              <div class="text-[10px] font-mono text-zinc-500 uppercase">Min</div>
+            </div>
+            <div class="bg-obsidian-850 border border-vaultBorder rounded-xl px-2.5 py-2 min-w-[58px]">
+              <div id="counter-secs" class="text-lg sm:text-xl font-mono font-bold text-crimson-500">00</div>
+              <div class="text-[10px] font-mono text-zinc-500 uppercase">Sec</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Section Header -->
+    <div class="flex items-center justify-between mb-5 px-1">
+      <div>
+        <h2 class="text-base sm:text-lg font-semibold text-white">Open When... Envelopes</h2>
+        <p class="text-xs text-zinc-400">Tap any unlocked envelope to open its contents</p>
+      </div>
+      <div class="text-xs font-mono text-zinc-400 bg-obsidian-850 border border-vaultBorder px-3 py-1.5 rounded-xl">
+        <span id="unlocked-count" class="text-white font-semibold">5</span> / 6 Ready
+      </div>
+    </div>
+
+    <!-- Interactive Cards Grid -->
+    <div id="cards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+      <!-- Cards injected dynamically from the labeled ENVELOPES array below -->
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-14 text-center text-xs text-zinc-500 font-mono">
+      Built by ProxyUser (Trey), All rights reserved™
+    </footer>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- LETTER READER MODAL                                                   -->
+  <!-- ===================================================================== -->
+  <div id="letter-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+    <div class="glass-panel w-full max-w-lg rounded-3xl border border-vaultBorder shadow-2xl overflow-hidden transform transition-all max-h-[90vh] flex flex-col">
+      <!-- Top Bar -->
+      <div class="px-6 py-4 border-b border-vaultBorder flex items-center justify-between bg-obsidian-900/90">
+        <div class="flex items-center gap-2.5">
+          <span id="modal-tag" class="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-crimson-950/90 text-crimson-500 border border-crimson-800/50">ENVELOPE #01</span>
+        </div>
+        <button onclick="closeLetterModal()" class="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-obsidian-800 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Scrollable Letter Content -->
+      <div class="p-6 sm:p-7 overflow-y-auto space-y-5">
+        <h3 id="modal-title" class="text-xl sm:text-2xl font-bold text-white leading-snug">Open when you miss me</h3>
+        
+        <!-- Dynamic Interactive Widget Slot (Photo / Breathing / Ambient Synth / Food Picker) -->
+        <div id="modal-widget-slot"></div>
+
+        <!-- Letter Body -->
+        <div id="modal-body" class="text-sm sm:text-[15px] text-zinc-300 leading-relaxed whitespace-pre-line font-normal"></div>
+
+        <!-- Signature -->
+        <div class="pt-4 border-t border-vaultBorder flex items-center justify-between text-xs font-mono text-zinc-400">
+          <span>Always yours,</span>
+          <span class="text-crimson-500 font-semibold">— Trey</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- APPLICATION LOGIC & MANUALLY EDITABLE ENVELOPE CONTENT                -->
+  <!-- ===================================================================== -->
+  <script>
+    /**
+     * =========================================================================
+     * VAULT SETTINGS (EDIT DATES OR FOOD OPTIONS HERE IF NEEDED)
+     * =========================================================================
+     */
+    const VAULT_CONFIG = {
+      recipientName: "Kiley",
+      senderName: "Trey",
+      // SHA-256 hash of "052226" (Passcode: 052226)
+      pinHash: "c6c84a83d6a9bb0f85b4081448e9183e543ba6f6c536243d7b3a80c9c6b420ed",
+      startDate: "2026-05-20T00:00:00",
+      unlockOneYearDate: "2027-05-20T00:00:00",
+      foodOptions: [
+        "Street Tacos 🌮",
+        "Sushi Rolls 🍣",
+        "Homemade Pasta Night 🍝",
+        "Smash Burgers & Fries 🍔",
+        "Thai Curry 🍛",
+        "Indian Curry 🍛",
+        "Breakfast for Dinner 🧇"
+      ]
+    };
+
+    /**
+     * =========================================================================
+     * ENVELOPE LETTERS (EDIT YOUR MESSAGES & PHOTO URLS DIRECTLY BELOW)
+     * =========================================================================
+     */
+    const ENVELOPES = [
+
+      /* =======================================================================
+         ENVELOPE 1: OPEN WHEN YOU MISS ME (EDIT MESSAGE & PHOTO BELOW)
+         ======================================================================= */
+      {
+        id: "miss-me",
+        number: "01",
+        title: "Open when you miss me",
+        subtitle: "When I'm away...",
+        type: "photo",
+        // Replace photoUrl below with your own image link (e.g., "./photo1.jpg" or an image URL):
+        photoUrl: "https://placehold.co/600x360/120b0d/ef4444?text=Add+Photo+Here",
+        photoCaption: "-",
+        // Edit your letter message inside the quotes below:
+        message: "Hello baby,  I'm sorry if I'm sleeping or gone doing whatever.  I want you too know I love you so much and you're truly the best thing too have happened too me."
+      },
+
+      /* =======================================================================
+         ENVELOPE 2: OPEN WHEN YOU'RE HAVING A ROUGH DAY (EDIT MESSAGE BELOW)
+         ======================================================================= */
+      {
+        id: "rough-day",
+        number: "02",
+        title: "Open when you're having a rough day",
+        subtitle: "I'm right here with you",
+        type: "breathe",
+        // Edit your letter message inside the quotes below:
+        message: "Hello baby,  I'm sorry if you need too open this one that means I've failed my job.  But I made a self breathing exersize for you.  I know it works for me.  I love you I'm sorry."
+      },
+
+      /* =======================================================================
+         ENVELOPE 3: OPEN WHEN YOU CAN'T SLEEP (EDIT MESSAGE BELOW)
+         ======================================================================= */
+      {
+        id: "cant-sleep",
+        number: "03",
+        title: "Open when you can't sleep",
+        subtitle: "Late-night ambient synth & a quiet note",
+        type: "lofi",
+        // Edit your letter message inside the quotes below:
+        message: "I don't know if it'll help but white noise works for me.  I love you Kiley,  Please tell me whenever you're struggling so I can help.  You aren't alone"
+      },
+
+      /* =======================================================================
+         ENVELOPE 4: OPEN WHEN WE'RE DECIDING WHERE TO EAT (EDIT MESSAGE BELOW)
+         ======================================================================= */
+      {
+        id: "where-to-eat",
+        number: "04",
+        title: "Open when we're deciding where to eat",
+        subtitle: "Ending the 'I don't know, what do you want?' loop",
+        type: "food",
+        // Edit your letter message inside the quotes below:
+        message: "We're so terrible at deciding thing's so I made this one for the both of us lol,  Or when I ask you too find something too eat."
+      },
+
+      /* =======================================================================
+         ENVELOPE 5: OPEN ON OUR 1-YEAR ANNIVERSARY (TIME-LOCKED UNTIL MAY 22, 2027)
+         ======================================================================= */
+      {
+        id: "one-year",
+        number: "05",
+        title: "Open on our 1-Year Anniversary",
+        subtitle: "Time-locked until May 22, 2027",
+        type: "timelock",
+        // Edit your 1-Year Anniversary letter inside the quotes below:
+        message: "Oh my god,  its been 365 days with you and I genuinely can't be happier.  You are truly the love of my life and I can say that confidently.  I really really really want you too be the person in my life forever."
+      },
+
+      /* =======================================================================
+         ENVELOPE 6: OPEN WHEN YOU NEED A REMINDER OF MY FAVORITE MEMORY (EDIT BELOW)
+         ======================================================================= */
+      {
+        id: "fav-memory",
+        number: "06",
+        title: "Open when you need a reminder of my favorite memory",
+        subtitle: "A photo from the last six months",
+        type: "photo",
+        // Replace photoUrl below with your own image link (e.g., "./memory.jpg" or an image URL):
+        photoUrl: "https://placehold.co/600x420/120b0d/ffffff?text=Add+Memory+Photo",
+        photoCaption: "Johnston Hoco - Sept 27, 26",
+        // Edit your letter message inside the quotes below:
+        message: "Going too homecoming with you was honestly extremely scary for me,  It was the first event like that,  that I was able too attend.  I truly enjoyed it so much and wish I could reciprocate it too the level I feel.  I love you so much,  Thank you."
+      }
+
+    ];
+
+    /* =========================================================================
+       CORE VAULT STATE & LOGIC (NO NEED TO EDIT BELOW THIS LINE)
+       ========================================================================= */
+    let enteredPin = "";
+    let isUnlocked = false;
+    let hugCount = parseInt(localStorage.getItem("kiley_vault_hugs") || "0", 10);
+
+    // Pure Web Audio API Ambient Pad Variables
+    let audioCtx = null;
+    let activeNodes = [];
+    let ambientInterval = null;
+    let isPlayingAmbient = false;
+
+    /**
+     * SHA-256 HASHING UTILITY (Web Crypto API)
+     */
+    async function sha256(message) {
+      const msgBuffer = new TextEncoder().encode(message);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    /**
+     * KEYPAD & LOCK SCREEN LOGIC
+     */
+    function pressKey(digit) {
+      if (enteredPin.length >= 6) return;
+      enteredPin += digit;
+      updatePinDots();
+
+      if (enteredPin.length === 6) {
+        verifyPin();
+      }
+    }
+
+    function backspacePin() {
+      if (enteredPin.length === 0) return;
+      enteredPin = enteredPin.slice(0, -1);
+      updatePinDots();
+      setFeedback("LOCKED", "text-zinc-500");
+    }
+
+    function clearPin() {
+      enteredPin = "";
+      updatePinDots();
+      setFeedback("LOCKED", "text-zinc-500");
+    }
+
+    function updatePinDots() {
+      const dots = document.querySelectorAll(".pin-dot");
+      dots.forEach((dot, idx) => {
+        if (idx < enteredPin.length) {
+          dot.classList.remove("bg-transparent", "border-zinc-600");
+          dot.classList.add("bg-crimson-600", "border-crimson-500", "scale-110", "shadow-[0_0_12px_rgba(220,38,38,0.75)]");
+        } else {
+          dot.classList.add("bg-transparent", "border-zinc-600");
+          dot.classList.remove("bg-crimson-600", "border-crimson-500", "scale-110", "shadow-[0_0_12px_rgba(220,38,38,0.75)]");
+        }
+      });
+    }
+
+    function setFeedback(text, colorClass) {
+      const el = document.getElementById("pin-feedback");
+      el.textContent = text;
+      el.className = `text-center text-xs font-mono h-4 mb-5 transition-colors ${colorClass}`;
+    }
+
+    async function verifyPin() {
+      try {
+        const enteredHash = await sha256(enteredPin);
+        if (enteredHash === VAULT_CONFIG.pinHash || enteredPin === "052226") {
+          setFeedback("ACCESS GRANTED", "text-white");
+          setTimeout(() => {
+            unlockVault();
+          }, 300);
+        } else {
+          triggerWrongPin();
+        }
+      } catch (err) {
+        if (enteredPin === "052226") {
+          unlockVault();
+        } else {
+          triggerWrongPin();
+        }
+      }
+    }
+
+    function triggerWrongPin() {
+      const card = document.getElementById("keypad-card");
+      card.classList.remove("animate-shake");
+      void card.offsetWidth;
+      card.classList.add("animate-shake");
+      setFeedback("INCORRECT PASSCODE", "text-crimson-500");
+
+      setTimeout(() => {
+        enteredPin = "";
+        updatePinDots();
+      }, 450);
+    }
+
+    function unlockVault() {
+      isUnlocked = true;
+      const lockScreen = document.getElementById("lock-screen");
+      const dashboard = document.getElementById("vault-dashboard");
+      const lockBtn = document.getElementById("lock-vault-btn");
+
+      lockScreen.classList.add("opacity-0", "scale-95", "pointer-events-none");
+      setTimeout(() => {
+        lockScreen.classList.add("hidden");
+        dashboard.classList.remove("hidden");
+        lockBtn.classList.remove("hidden");
+        renderDashboard();
+        requestAnimationFrame(() => {
+          dashboard.classList.remove("opacity-0");
+        });
+      }, 380);
+    }
+
+    function lockVault() {
+      isUnlocked = false;
+      enteredPin = "";
+      updatePinDots();
+      setFeedback("LOCKED", "text-zinc-500");
+      stopAmbientSound();
+
+      const lockScreen = document.getElementById("lock-screen");
+      const dashboard = document.getElementById("vault-dashboard");
+      const lockBtn = document.getElementById("lock-vault-btn");
+
+      dashboard.classList.add("opacity-0");
+      setTimeout(() => {
+        dashboard.classList.add("hidden");
+        lockBtn.classList.add("hidden");
+        lockScreen.classList.remove("hidden");
+        requestAnimationFrame(() => {
+          lockScreen.classList.remove("opacity-0", "scale-95", "pointer-events-none");
+        });
+      }, 340);
+    }
+
+    // Keyboard Support for PIN Entry
+    document.addEventListener("keydown", (e) => {
+      if (isUnlocked) return;
+      if (e.key >= "0" && e.key <= "9") {
+        pressKey(e.key);
+      } else if (e.key === "Backspace") {
+        backspacePin();
+      } else if (e.key === "Escape") {
+        clearPin();
+      }
+    });
+
+    /**
+     * LIVE TICKING COUNTERS (Since May 22, 2026 & 1-Year Time Lock)
+     */
+    function updateTimers() {
+      const now = new Date();
+      const start = new Date(VAULT_CONFIG.startDate);
+      const diffMs = Math.max(0, now - start);
+
+      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
+      const mins = Math.floor((diffMs / (1000 * 60)) % 60);
+      const secs = Math.floor((diffMs / 1000) % 60);
+
+      document.getElementById("counter-days").textContent = String(days).padStart(2, "0");
+      document.getElementById("counter-hours").textContent = String(hours).padStart(2, "0");
+      document.getElementById("counter-mins").textContent = String(mins).padStart(2, "0");
+      document.getElementById("counter-secs").textContent = String(secs).padStart(2, "0");
+
+      // Update 1-Year Time Lock Countdown if rendered
+      const lockCountdownEl = document.getElementById("timelock-countdown");
+      if (lockCountdownEl) {
+        const target = new Date(VAULT_CONFIG.unlockOneYearDate);
+        const rem = target - now;
+        if (rem <= 0) {
+          lockCountdownEl.textContent = "UNLOCKED & READY";
+        } else {
+          const rDays = Math.floor(rem / (1000 * 60 * 60 * 24));
+          const rHrs = Math.floor((rem / (1000 * 60 * 60)) % 24);
+          const rMins = Math.floor((rem / (1000 * 60)) % 60);
+          const rSecs = Math.floor((rem / 1000) % 60);
+          lockCountdownEl.textContent = `${rDays}d ${String(rHrs).padStart(2, "0")}h ${String(rMins).padStart(2, "0")}m ${String(rSecs).padStart(2, "0")}s`;
+        }
+      }
+    }
+
+    /**
+     * RENDER ENVELOPE CARDS GRID
+     */
+    function renderDashboard() {
+      const now = new Date();
+      const oneYearTarget = new Date(VAULT_CONFIG.unlockOneYearDate);
+      const isTimeLocked = now < oneYearTarget;
+
+      document.getElementById("unlocked-count").textContent = isTimeLocked ? "5" : "6";
+
+      const grid = document.getElementById("cards-grid");
+      grid.innerHTML = "";
+
+      ENVELOPES.forEach((card) => {
+        const locked = card.type === "timelock" && isTimeLocked;
+
+        const cardEl = document.createElement("button");
+        cardEl.type = "button";
+        cardEl.onclick = () => handleCardClick(card, locked);
+        cardEl.className = `glass-card ${locked ? "locked-card" : ""} text-left rounded-3xl p-6 flex flex-col justify-between min-h-[205px] relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-crimson-600/60`;
+
+        const badgeHTML = locked
+          ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-obsidian-950 text-zinc-300 border border-zinc-700">
+               <svg class="w-3 h-3 text-crimson-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+               TIME-LOCKED
+             </span>`
+          : `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-crimson-950/90 text-crimson-500 border border-crimson-800/50">
+               <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
+               UNLOCKED
+             </span>`;
+
+        const bottomMetaHTML = locked
+          ? `<div class="mt-5 pt-3.5 border-t border-vaultBorder flex items-center justify-between text-xs font-mono">
+               <span class="text-zinc-500">Unlocks in</span>
+               <span id="timelock-countdown" class="text-white font-semibold">Calculating...</span>
+             </div>`
+          : `<div class="mt-5 pt-3.5 border-t border-vaultBorder flex items-center justify-between text-xs font-mono text-zinc-400 group-hover:text-white transition-colors">
+               <span>ENVELOPE #${card.number}</span>
+               <span class="inline-flex items-center gap-1 text-crimson-500 group-hover:translate-x-1 transition-transform">
+                 Open
+                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+               </span>
+             </div>`;
+
+        cardEl.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-4">
+              ${badgeHTML}
+              <span class="text-xs font-mono text-zinc-600">#${card.number}</span>
+            </div>
+            <h3 class="text-lg font-semibold text-white group-hover:text-crimson-500 transition-colors leading-snug">
+              ${escapeHTML(card.title)}
+            </h3>
+            <p class="text-xs text-zinc-400 mt-1.5 leading-relaxed">
+              ${escapeHTML(card.subtitle)}
+            </p>
+          </div>
+          ${bottomMetaHTML}
+        `;
+
+        grid.appendChild(cardEl);
+      });
+
+      updateTimers();
+    }
+
+    /**
+     * HANDLE CARD CLICK & INTERACTIVE MODAL WIDGETS
+     */
+    function handleCardClick(card, isLocked) {
+      if (isLocked) {
+        showToast("Sealed until our 1-Year Anniversary on May 22, 2027!");
+        return;
+      }
+
+      document.getElementById("modal-tag").textContent = `ENVELOPE #${card.number}`;
+      document.getElementById("modal-title").textContent = card.title;
+      document.getElementById("modal-body").textContent = card.message;
+
+      const widgetSlot = document.getElementById("modal-widget-slot");
+      widgetSlot.innerHTML = "";
+
+      if (card.type === "photo") {
+        const imgSrc = card.photoUrl || "https://placehold.co/600x360/120b0d/ef4444?text=Add+Photo+Here";
+        widgetSlot.innerHTML = `
+          <div class="rounded-2xl overflow-hidden border border-vaultBorder bg-obsidian-950">
+            <img src="${escapeHTML(imgSrc)}" alt="Memory" onerror="this.src='https://placehold.co/600x360/120b0d/ef4444?text=Photo+Placeholder'" class="w-full h-48 sm:h-56 object-cover" />
+            <div class="px-4 py-2.5 text-xs font-mono text-zinc-400 flex items-center justify-between">
+              <span>${escapeHTML(card.photoCaption || "N/A")}</span>
+              <span class="text-crimson-500">● ARCHIVED</span>
+            </div>
+          </div>
+        `;
+      } else if (card.type === "breathe") {
+        widgetSlot.innerHTML = `
+          <div class="rounded-2xl border border-vaultBorder bg-obsidian-950/90 p-5 flex flex-col items-center text-center">
+            <div class="relative w-24 h-24 flex items-center justify-center my-2">
+              <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-crimson-900/70 to-crimson-600/50 border border-crimson-500/70 animate-breathe flex items-center justify-center">
+                <span class="text-[10px] font-mono text-white tracking-widest uppercase">Breathe</span>
+              </div>
+            </div>
+            <p class="text-xs text-zinc-400 mt-2 mb-3">Inhale as the circle expands &bull; Exhale as it softens</p>
+            <button onclick="sendVirtualHug()" class="px-4 py-2 rounded-xl bg-crimson-950 hover:bg-crimson-900 border border-crimson-700/60 text-xs font-mono text-white transition active:scale-95">
+              Send Virtual Hug (<span id="hug-counter-val">${hugCount}</span>)
+            </button>
+          </div>
+        `;
+      } else if (card.type === "lofi") {
+        widgetSlot.innerHTML = `
+          <div class="rounded-2xl border border-vaultBorder bg-obsidian-950/90 p-4 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <button id="ambient-toggle-btn" onclick="toggleAmbientSound()" class="w-11 h-11 rounded-2xl bg-crimson-950 hover:bg-crimson-900 border border-crimson-700/60 text-white flex items-center justify-center transition active:scale-95">
+                <svg id="ambient-icon-play" class="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                <svg id="ambient-icon-stop" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+              </button>
+              <div>
+                <div class="text-xs font-semibold text-white">Midnight Drift Synth</div>
+                <div id="ambient-status" class="text-[11px] font-mono text-zinc-400">Tap play for warm ambient chords</div>
+              </div>
+            </div>
+            <div class="flex items-end gap-1 h-5 pr-2">
+              <span class="w-1 bg-crimson-600 rounded-full h-2 animate-pulse"></span>
+              <span class="w-1 bg-white/80 rounded-full h-4 animate-pulse"></span>
+              <span class="w-1 bg-crimson-600 rounded-full h-3 animate-pulse"></span>
+            </div>
+          </div>
+        `;
+      } else if (card.type === "food") {
+        widgetSlot.innerHTML = `
+          <div class="rounded-2xl border border-vaultBorder bg-obsidian-950/90 p-5 text-center">
+            <div class="text-[11px] font-mono uppercase tracking-wider text-zinc-400 mb-2">Tonight's Dinner Verdict</div>
+            <div id="food-result" class="text-base sm:text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-crimson-500 py-2 min-h-[40px] flex items-center justify-center">
+              Tap below to spin the vault
+            </div>
+            <button onclick="pickRandomFood()" class="mt-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-crimson-800 to-crimson-600 hover:from-crimson-700 hover:to-crimson-500 text-xs font-semibold text-white shadow-md transition active:scale-95">
+              Pick Where We Eat
+            </button>
+          </div>
+        `;
+      } else if (card.type === "polaroid") {
+        const imgSrc = card.photoUrl || "https://placehold.co/600x420/120b0d/ffffff?text=Add+Memory+Photo";
+        widgetSlot.innerHTML = `
+          <div class="bg-[#140d0f] p-3 pb-4 rounded-2xl border border-vaultBorder shadow-xl max-w-sm mx-auto transform -rotate-1">
+            <div class="rounded-xl overflow-hidden bg-obsidian-950 border border-vaultBorder">
+              <img src="${escapeHTML(imgSrc)}" alt="Polaroid Memory" onerror="this.src='https://placehold.co/600x420/120b0d/ffffff?text=Photo+Placeholder'" class="w-full h-48 object-cover" />
+            </div>
+            <div class="mt-3 text-center font-mono text-xs text-zinc-300">
+              ${escapeHTML(card.photoCaption || "N/A")}
+            </div>
+          </div>
+        `;
+      } else if (card.type === "timelock") {
+        widgetSlot.innerHTML = `
+          <div class="rounded-2xl border border-crimson-700/50 bg-crimson-950/60 p-4 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-crimson-900/60 text-white flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+            </div>
+            <div class="text-xs text-zinc-200">
+              <span class="font-semibold block text-white">1-Year Time Capsule Unlocked</span>
+              Sealed 6 months ago for May 22, 2027.
+            </div>
+          </div>
+        `;
+      }
+
+      const modal = document.getElementById("letter-modal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closeLetterModal() {
+      stopAmbientSound();
+      const modal = document.getElementById("letter-modal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    /**
+     * MINI INTERACTIVE WIDGET ACTIONS
+     */
+    function sendVirtualHug() {
+      hugCount += 1;
+      try {
+        localStorage.setItem("kiley_vault_hugs", String(hugCount));
+      } catch (e) {}
+      const counterEl = document.getElementById("hug-counter-val");
+      if (counterEl) counterEl.textContent = hugCount;
+      showToast("Virtual hug sent! ❤️");
+    }
+
+    function pickRandomFood() {
+      const resultEl = document.getElementById("food-result");
+      if (!resultEl) return;
+
+      const options = VAULT_CONFIG.foodOptions;
+      let spins = 0;
+      const maxSpins = 12;
+
+      const interval = setInterval(() => {
+        const rand = options[Math.floor(Math.random() * options.length)];
+        resultEl.textContent = rand;
+        spins++;
+        if (spins >= maxSpins) {
+          clearInterval(interval);
+        }
+      }, 65);
+    }
+
+    /**
+     * PURE WEB AUDIO API WARM AMBIENT CHORD SYNTH
+     */
+    function toggleAmbientSound() {
+      if (isPlayingAmbient) {
+        stopAmbientSound();
+        return;
+      }
+
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioCtx) {
+          audioCtx = new AudioContextClass();
+        }
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+
+        // Warm low-pass filter for mellow midnight pad sound
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(520, audioCtx.currentTime);
+        filter.connect(audioCtx.destination);
+
+        const chords = [
+          [174.61, 220.00, 261.63, 329.63], // Fmaj7
+          [146.83, 174.61, 220.00, 261.63], // Dm7
+          [196.00, 246.94, 293.66, 349.23], // G7
+          [130.81, 164.81, 196.00, 246.94]  // Cmaj7
+        ];
+        let step = 0;
+
+        const playChord = (freqs) => {
+          if (!audioCtx) return;
+          const now = audioCtx.currentTime;
+          freqs.forEach((freq) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(freq, now);
+
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.exponentialRampToValueAtTime(0.035, now + 1.1);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.9);
+
+            osc.connect(gain);
+            gain.connect(filter);
+
+            osc.start(now);
+            osc.stop(now + 4.0);
+            activeNodes.push(osc);
+          });
+        };
+
+        playChord(chords[0]);
+        ambientInterval = setInterval(() => {
+          step = (step + 1) % chords.length;
+          playChord(chords[step]);
+        }, 3800);
+
+        isPlayingAmbient = true;
+        document.getElementById("ambient-icon-play")?.classList.add("hidden");
+        document.getElementById("ambient-icon-stop")?.classList.remove("hidden");
+        const statusEl = document.getElementById("ambient-status");
+        if (statusEl) statusEl.textContent = "Playing warm ambient pad...";
+      } catch (e) {
+        showToast("Tap again to enable audio playback");
+      }
+    }
+
+    function stopAmbientSound() {
+      if (ambientInterval) {
+        clearInterval(ambientInterval);
+        ambientInterval = null;
+      }
+      activeNodes.forEach((osc) => {
+        try {
+          osc.stop();
+          osc.disconnect();
+        } catch (e) {}
+      });
+      activeNodes = [];
+      isPlayingAmbient = false;
+      document.getElementById("ambient-icon-play")?.classList.remove("hidden");
+      document.getElementById("ambient-icon-stop")?.classList.add("hidden");
+      const statusEl = document.getElementById("ambient-status");
+      if (statusEl) statusEl.textContent = "Tap play for warm ambient chords";
+    }
+
+    /**
+     * TOAST & ESCAPE HELPERS
+     */
+    function showToast(msg) {
+      const container = document.getElementById("toast-container");
+      const toast = document.createElement("div");
+      toast.className = "glass-panel border border-crimson-700/60 text-white text-xs font-mono px-4 py-3 rounded-2xl shadow-xl transition-all duration-300 transform translate-y-2 opacity-0";
+      toast.textContent = msg;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove("translate-y-2", "opacity-0");
+      });
+
+      setTimeout(() => {
+        toast.classList.add("translate-y-2", "opacity-0");
+        setTimeout(() => toast.remove(), 300);
+      }, 3400);
+    }
+
+    function escapeHTML(str) {
+      if (!str) return "";
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Initialize on Window Load
+    window.onload = function () {
+      updateTimers();
+      setInterval(updateTimers, 1000);
+    };
+  </script>
+</body>
+</html>
