@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kiley</title>
+  <title>My Love.</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -144,6 +144,45 @@
       pointer-events: none;
       z-index: 0;
     }
+
+    /* Sleep Dim Mode: solid black screen behind the un-dim button at 10% brightness */
+    #sleep-dim-overlay {
+      position: fixed;
+      inset: 0;
+      background: #000000;
+      z-index: 60;
+      pointer-events: auto;
+      transition: opacity 0.35s ease;
+    }
+
+    input[type="range"].vault-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(38, 23, 26, 0.95);
+      height: 6px;
+      border-radius: 9999px;
+      outline: none;
+    }
+
+    input[type="range"].vault-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 9999px;
+      background: #dc2626;
+      border: 2px solid #ffffff;
+      cursor: pointer;
+    }
+
+    input[type="range"].vault-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 9999px;
+      background: #dc2626;
+      border: 2px solid #ffffff;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body class="min-h-screen antialiased selection:bg-crimson-800/50 selection:text-white">
@@ -151,6 +190,17 @@
   <!-- Ambient Background Lights -->
   <div class="ambient-orb-1"></div>
   <div class="ambient-orb-2"></div>
+
+  <!-- Sleep Dim Overlay (Active only while in White Noise Dim Mode) -->
+  <div id="sleep-dim-overlay" class="hidden flex-col items-center justify-center p-6 text-center">
+    <button
+      type="button"
+      onclick="toggleSleepDim(false)"
+      class="py-2.5 px-4 rounded-xl border border-white/10 bg-black hover:bg-white/5 text-xs font-mono text-zinc-600 hover:text-zinc-400 transition cursor-pointer"
+    >
+      Restore Brightness (100%)
+    </button>
+  </div>
 
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
@@ -175,7 +225,7 @@
       <div class="flex justify-center mb-5">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-obsidian-950/90 border border-vaultBorder text-[11px] font-mono text-zinc-400">
           <span class="w-2 h-2 rounded-full bg-crimson-600 animate-pulse"></span>
-          <span>PRIVATE VAULT // 06M</span>
+          <span>ENVELOPE VAULT // 6 Months</span>
         </div>
       </div>
 
@@ -246,7 +296,7 @@
           <span class="text-transparent bg-clip-text bg-gradient-to-r from-white to-crimson-500">Kiley</span>
           </h1>
           <p class="text-sm text-zinc-400 mt-1.5 max-w-lg">
-            I have no comprehension in gift giving so I made this for you baby.  I hope it's good enough for you.
+            I have no comprehension in gift giving so I made this for you baby. I hope it's good enough for you.
           </p>
         </div>
 
@@ -258,7 +308,7 @@
           </div>
           <div class="grid grid-cols-4 gap-2 sm:gap-3 text-center">
             <div class="bg-obsidian-850 border border-vaultBorder rounded-xl px-2.5 py-2 min-w-[58px]">
-              <div id="counter-days" class="text-lg sm:text-xl font-mono font-bold text-white">185</div>
+              <div id="counter-days" class="text-lg sm:text-xl font-mono font-bold text-white">182</div>
               <div class="text-[10px] font-mono text-zinc-500 uppercase">Days</div>
             </div>
             <div class="bg-obsidian-850 border border-vaultBorder rounded-xl px-2.5 py-2 min-w-[58px]">
@@ -282,7 +332,7 @@
     <div class="flex items-center justify-between mb-5 px-1">
       <div>
         <h2 class="text-base sm:text-lg font-semibold text-white">Open When... Envelopes</h2>
-        <p class="text-xs text-zinc-400">Tap any unlocked envelope to open its contents</p>
+        <p class="text-xs text-zinc-400">Tap the envelope when you need it.</p>
       </div>
       <div class="text-xs font-mono text-zinc-400 bg-obsidian-850 border border-vaultBorder px-3 py-1.5 rounded-xl">
         <span id="unlocked-count" class="text-white font-semibold">5</span> / 6 Ready
@@ -296,7 +346,7 @@
 
     <!-- Footer -->
     <footer class="mt-14 text-center text-xs text-zinc-500 font-mono">
-      Built by ProxyUser (Trey), All rights reserved™
+      Built by ProxyUser (Trey), All rights reserved
     </footer>
   </main>
 
@@ -321,7 +371,7 @@
       <div class="p-6 sm:p-7 overflow-y-auto space-y-5">
         <h3 id="modal-title" class="text-xl sm:text-2xl font-bold text-white leading-snug">Open when you miss me</h3>
         
-        <!-- Dynamic Interactive Widget Slot (Photo / Breathing / Ambient Synth / Food Picker) -->
+        <!-- Dynamic Interactive Widget Slot (Photo / Breathing / MP3 Audio / Food Picker) -->
         <div id="modal-widget-slot"></div>
 
         <!-- Letter Body -->
@@ -342,7 +392,7 @@
   <script>
     /**
      * =========================================================================
-     * VAULT SETTINGS (EDIT DATES OR FOOD OPTIONS HERE IF NEEDED)
+     * VAULT SETTINGS (EDIT DATES, MP3 FILE NAME, VOLUME, OR FOOD OPTIONS HERE)
      * =========================================================================
      */
     const VAULT_CONFIG = {
@@ -350,16 +400,30 @@
       senderName: "Trey",
       // SHA-256 hash of "052226" (Passcode: 052226)
       pinHash: "c6c84a83d6a9bb0f85b4081448e9183e543ba6f6c536243d7b3a80c9c6b420ed",
-      startDate: "2026-05-20T00:00:00",
-      unlockOneYearDate: "2027-05-20T00:00:00",
+      startDate: "2026-05-22T00:00:00",
+      unlockOneYearDate: "2027-05-22T00:00:00",
+      // Replace "white-noise.mp3" with the exact MP3 filename in https://github.com/prxyusr/EnvelopesK6m
+      whiteNoiseMp3Url: "https://raw.githubusercontent.com/prxyusr/EnvelopesK6m/main/white-noise.mp3",
+      defaultVolume: 0.5,
       foodOptions: [
         "Street Tacos 🌮",
         "Sushi Rolls 🍣",
         "Homemade Pasta Night 🍝",
         "Smash Burgers & Fries 🍔",
         "Thai Curry 🍛",
-        "Indian Curry 🍛",
-        "Breakfast for Dinner 🧇"
+        "Indian Curry 🍲",
+        "Breakfast for Dinner 🧇",
+        "Pizza Night 🍕",
+        "Korean BBQ 🥩",
+        "Ramen🍜",
+        "Mexican 🥑",
+        "Pho 🥢",
+        "Steakhouse 🥩",
+        "Loaded Nachos 🧀",
+        "Loaded Mac & Cheese",
+        "Pad Thai and/or Crispy Spring Rolls 🥡",
+        "Ice Cream / Froyo",
+        "Dessert for dinner 🍨"
       ]
     };
 
@@ -369,109 +433,79 @@
      * =========================================================================
      */
     const ENVELOPES = [
-
-      /* =======================================================================
-         ENVELOPE 1: OPEN WHEN YOU MISS ME (EDIT MESSAGE & PHOTO BELOW)
-         ======================================================================= */
       {
         id: "miss-me",
         number: "01",
         title: "Open when you miss me",
-        subtitle: "When I'm away...",
+        subtitle: "When I'm away.",
         type: "photo",
-        // Replace photoUrl below with your own image link (e.g., "./photo1.jpg" or an image URL):
-        photoUrl: "https://placehold.co/600x360/120b0d/ef4444?text=Add+Photo+Here",
+        photoUrl: "https://raw.githubusercontent.com/prxyusr/EnvelopesK6m/main/IMG_4673.jpg",
         photoCaption: "-",
-        // Edit your letter message inside the quotes below:
-        message: "Hello baby,  I'm sorry if I'm sleeping or gone doing whatever.  I want you too know I love you so much and you're truly the best thing too have happened too me."
+        message: "Hello baby, I'm sorry if I'm sleeping or gone doing whatever. I want you to know I love you so much and you're truly the best thing to have happened to me."
       },
-
-      /* =======================================================================
-         ENVELOPE 2: OPEN WHEN YOU'RE HAVING A ROUGH DAY (EDIT MESSAGE BELOW)
-         ======================================================================= */
       {
         id: "rough-day",
         number: "02",
         title: "Open when you're having a rough day",
-        subtitle: "I'm right here with you",
+        subtitle: "I'm right here with you.  Always and forever.",
         type: "breathe",
-        // Edit your letter message inside the quotes below:
-        message: "Hello baby,  I'm sorry if you need too open this one that means I've failed my job.  But I made a self breathing exersize for you.  I know it works for me.  I love you I'm sorry."
+        message: "Hello baby, I'm sorry if you need to open this one—that means I've failed my job. But I made a breathing exercise for you. I know it works for me. I love you, I'm sorry."
       },
-
-      /* =======================================================================
-         ENVELOPE 3: OPEN WHEN YOU CAN'T SLEEP (EDIT MESSAGE BELOW)
-         ======================================================================= */
       {
         id: "cant-sleep",
         number: "03",
         title: "Open when you can't sleep",
-        subtitle: "Late-night ambient synth & a quiet note",
+        subtitle: "White Noise - 10hr long so you can sleep.",
         type: "lofi",
-        // Edit your letter message inside the quotes below:
-        message: "I don't know if it'll help but white noise works for me.  I love you Kiley,  Please tell me whenever you're struggling so I can help.  You aren't alone"
+        message: "I don't know if it'll help, but white noise works for me. I love you Kiley. Please tell me whenever you're struggling so I can help. You aren't alone."
       },
-
-      /* =======================================================================
-         ENVELOPE 4: OPEN WHEN WE'RE DECIDING WHERE TO EAT (EDIT MESSAGE BELOW)
-         ======================================================================= */
       {
         id: "where-to-eat",
         number: "04",
         title: "Open when we're deciding where to eat",
-        subtitle: "Ending the 'I don't know, what do you want?' loop",
+        subtitle: "Ending the 'I don't know, what do you want?' loop.",
         type: "food",
-        // Edit your letter message inside the quotes below:
-        message: "We're so terrible at deciding thing's so I made this one for the both of us lol,  Or when I ask you too find something too eat."
+        message: "We're so terrible at deciding things so I made this one for both of us lol—or when I ask you to find something to eat."
       },
-
-      /* =======================================================================
-         ENVELOPE 5: OPEN ON OUR 1-YEAR ANNIVERSARY (TIME-LOCKED UNTIL MAY 22, 2027)
-         ======================================================================= */
       {
         id: "one-year",
         number: "05",
         title: "Open on our 1-Year Anniversary",
-        subtitle: "Time-locked until May 22, 2027",
+        subtitle: "Time-locked until May 22, 2027.",
         type: "timelock",
-        // Edit your 1-Year Anniversary letter inside the quotes below:
-        message: "Oh my god,  its been 365 days with you and I genuinely can't be happier.  You are truly the love of my life and I can say that confidently.  I really really really want you too be the person in my life forever."
+        message: "Oh my god, it's been 365 days with you and I genuinely can't be happier. You are truly the love of my life and I can say that confidently. I really, really, really want you to be the person in my life forever.  You've changed me so much and 100% for the better,  I've learned so much about you and myself over this last year and I geniuenly can't wait too experience the many more too come."
       },
-
-      /* =======================================================================
-         ENVELOPE 6: OPEN WHEN YOU NEED A REMINDER OF MY FAVORITE MEMORY (EDIT BELOW)
-         ======================================================================= */
       {
         id: "fav-memory",
         number: "06",
         title: "Open when you need a reminder of my favorite memory",
-        subtitle: "A photo from the last six months",
+        subtitle: "A extremely important photo too me.",
         type: "photo",
-        // Replace photoUrl below with your own image link (e.g., "./memory.jpg" or an image URL):
-        photoUrl: "https://placehold.co/600x420/120b0d/ffffff?text=Add+Memory+Photo",
+        photoUrl: "https://raw.githubusercontent.com/prxyusr/EnvelopesK6m/main/IMG_4581.jpg",
         photoCaption: "Johnston Hoco - Sept 27, 26",
-        // Edit your letter message inside the quotes below:
-        message: "Going too homecoming with you was honestly extremely scary for me,  It was the first event like that,  that I was able too attend.  I truly enjoyed it so much and wish I could reciprocate it too the level I feel.  I love you so much,  Thank you."
+        message: "Going to homecoming with you was honestly extremely scary for me—it was the first event like that I was able to attend. I truly enjoyed it so much and wish I could reciprocate it to the level I feel. I love you so much, thank you."
       }
-
     ];
 
     /* =========================================================================
-       CORE VAULT STATE & LOGIC (NO NEED TO EDIT BELOW THIS LINE)
+       CORE VAULT STATE & LOGIC
        ========================================================================= */
     let enteredPin = "";
     let isUnlocked = false;
-    let hugCount = parseInt(localStorage.getItem("kiley_vault_hugs") || "0", 10);
+    let foodSpinInterval = null;
 
-    // Pure Web Audio API Ambient Pad Variables
+    // GitHub MP3 Audio Player State + iOS-friendly Gain / Volume Control
+    let ambientAudio = null;
     let audioCtx = null;
-    let activeNodes = [];
-    let ambientInterval = null;
+    let mediaSourceNode = null;
+    let gainNode = null;
     let isPlayingAmbient = false;
+    let isLoadingAmbient = false;
+    let currentVolume = VAULT_CONFIG.defaultVolume;
 
-    /**
-     * SHA-256 HASHING UTILITY (Web Crypto API)
-     */
+    // Sleep Dim Mode State (dims page content to ~10% brightness)
+    let isSleepDimmed = false;
+
     async function sha256(message) {
       const msgBuffer = new TextEncoder().encode(message);
       const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
@@ -479,9 +513,6 @@
       return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
     }
 
-    /**
-     * KEYPAD & LOCK SCREEN LOGIC
-     */
     function pressKey(digit) {
       if (enteredPin.length >= 6) return;
       enteredPin += digit;
@@ -576,6 +607,7 @@
     }
 
     function lockVault() {
+      toggleSleepDim(false);
       isUnlocked = false;
       enteredPin = "";
       updatePinDots();
@@ -597,8 +629,18 @@
       }, 340);
     }
 
-    // Keyboard Support for PIN Entry
     document.addEventListener("keydown", (e) => {
+      if (isSleepDimmed && e.key === "Escape") {
+        toggleSleepDim(false);
+        return;
+      }
+
+      const modal = document.getElementById("letter-modal");
+      if (modal && !modal.classList.contains("hidden") && e.key === "Escape") {
+        closeLetterModal();
+        return;
+      }
+
       if (isUnlocked) return;
       if (e.key >= "0" && e.key <= "9") {
         pressKey(e.key);
@@ -609,48 +651,82 @@
       }
     });
 
+    function toggleSleepDim(forceState) {
+      const nextState = typeof forceState === "boolean" ? forceState : !isSleepDimmed;
+      isSleepDimmed = nextState;
+
+      const overlay = document.getElementById("sleep-dim-overlay");
+      if (overlay) {
+        if (isSleepDimmed) {
+          overlay.classList.remove("hidden");
+          overlay.classList.add("flex");
+        } else {
+          overlay.classList.add("hidden");
+          overlay.classList.remove("flex");
+        }
+      }
+
+      const dimBtn = document.getElementById("sleep-dim-btn");
+      if (dimBtn) {
+        dimBtn.textContent = isSleepDimmed ? "Dim: 10% (On)" : "Dim 10%";
+      }
+    }
+
     /**
-     * LIVE TICKING COUNTERS (Since May 22, 2026 & 1-Year Time Lock)
+     * Parses an ISO-like date string ("YYYY-MM-DDTHH:mm:ss") in local time
+     * and computes exact elapsed full days and H:M:S since that timestamp.
      */
+    function parseLocalDateTime(dateStr) {
+      const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/.exec(dateStr);
+      if (match) {
+        return new Date(
+          Number(match[1]),
+          Number(match[2]) - 1,
+          Number(match[3]),
+          Number(match[4]),
+          Number(match[5]),
+          Number(match[6])
+        );
+      }
+      return new Date(dateStr);
+    }
+
     function updateTimers() {
       const now = new Date();
-      const start = new Date(VAULT_CONFIG.startDate);
-      const diffMs = Math.max(0, now - start);
+      const start = parseLocalDateTime(VAULT_CONFIG.startDate);
+      const diffMs = Math.max(0, now.getTime() - start.getTime());
 
-      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
-      const mins = Math.floor((diffMs / (1000 * 60)) % 60);
-      const secs = Math.floor((diffMs / 1000) % 60);
+      // Exact elapsed full days since start timestamp (e.g., 182 days at 01:15 on Nov 21, 2026)
+      const days = Math.floor(diffMs / 86400000);
+      const hours = Math.floor((diffMs % 86400000) / 3600000);
+      const mins = Math.floor((diffMs % 3600000) / 60000);
+      const secs = Math.floor((diffMs % 60000) / 1000);
 
       document.getElementById("counter-days").textContent = String(days).padStart(2, "0");
       document.getElementById("counter-hours").textContent = String(hours).padStart(2, "0");
       document.getElementById("counter-mins").textContent = String(mins).padStart(2, "0");
       document.getElementById("counter-secs").textContent = String(secs).padStart(2, "0");
 
-      // Update 1-Year Time Lock Countdown if rendered
       const lockCountdownEl = document.getElementById("timelock-countdown");
       if (lockCountdownEl) {
-        const target = new Date(VAULT_CONFIG.unlockOneYearDate);
-        const rem = target - now;
+        const target = parseLocalDateTime(VAULT_CONFIG.unlockOneYearDate);
+        const rem = target.getTime() - now.getTime();
         if (rem <= 0) {
           lockCountdownEl.textContent = "UNLOCKED & READY";
         } else {
-          const rDays = Math.floor(rem / (1000 * 60 * 60 * 24));
-          const rHrs = Math.floor((rem / (1000 * 60 * 60)) % 24);
-          const rMins = Math.floor((rem / (1000 * 60)) % 60);
-          const rSecs = Math.floor((rem / 1000) % 60);
+          const rDays = Math.floor(rem / 86400000);
+          const rHrs = Math.floor((rem % 86400000) / 3600000);
+          const rMins = Math.floor((rem % 3600000) / 60000);
+          const rSecs = Math.floor((rem % 60000) / 1000);
           lockCountdownEl.textContent = `${rDays}d ${String(rHrs).padStart(2, "0")}h ${String(rMins).padStart(2, "0")}m ${String(rSecs).padStart(2, "0")}s`;
         }
       }
     }
 
-    /**
-     * RENDER ENVELOPE CARDS GRID
-     */
     function renderDashboard() {
       const now = new Date();
-      const oneYearTarget = new Date(VAULT_CONFIG.unlockOneYearDate);
-      const isTimeLocked = now < oneYearTarget;
+      const oneYearTarget = parseLocalDateTime(VAULT_CONFIG.unlockOneYearDate);
+      const isTimeLocked = now.getTime() < oneYearTarget.getTime();
 
       document.getElementById("unlocked-count").textContent = isTimeLocked ? "5" : "6";
 
@@ -710,9 +786,6 @@
       updateTimers();
     }
 
-    /**
-     * HANDLE CARD CLICK & INTERACTIVE MODAL WIDGETS
-     */
     function handleCardClick(card, isLocked) {
       if (isLocked) {
         showToast("Sealed until our 1-Year Anniversary on May 22, 2027!");
@@ -727,10 +800,10 @@
       widgetSlot.innerHTML = "";
 
       if (card.type === "photo") {
-        const imgSrc = card.photoUrl || "https://placehold.co/600x360/120b0d/ef4444?text=Add+Photo+Here";
+        const imgSrc = card.photoUrl || "";
         widgetSlot.innerHTML = `
           <div class="rounded-2xl overflow-hidden border border-vaultBorder bg-obsidian-950">
-            <img src="${escapeHTML(imgSrc)}" alt="Memory" onerror="this.src='https://placehold.co/600x360/120b0d/ef4444?text=Photo+Placeholder'" class="w-full h-48 sm:h-56 object-cover" />
+            <img src="${escapeHTML(imgSrc)}" alt="Memory" onerror="this.closest('.rounded-2xl').style.display='none'" class="w-full h-48 sm:h-56 object-cover" />
             <div class="px-4 py-2.5 text-xs font-mono text-zinc-400 flex items-center justify-between">
               <span>${escapeHTML(card.photoCaption || "N/A")}</span>
               <span class="text-crimson-500">● ARCHIVED</span>
@@ -745,29 +818,55 @@
                 <span class="text-[10px] font-mono text-white tracking-widest uppercase">Breathe</span>
               </div>
             </div>
-            <p class="text-xs text-zinc-400 mt-2 mb-3">Inhale as the circle expands &bull; Exhale as it softens</p>
-            <button onclick="sendVirtualHug()" class="px-4 py-2 rounded-xl bg-crimson-950 hover:bg-crimson-900 border border-crimson-700/60 text-xs font-mono text-white transition active:scale-95">
-              Send Virtual Hug (<span id="hug-counter-val">${hugCount}</span>)
-            </button>
+            <p class="text-xs text-zinc-400 mt-2">Inhale as the circle expands &bull; Exhale as it softens</p>
           </div>
         `;
       } else if (card.type === "lofi") {
+        const initialStatus = isLoadingAmbient
+          ? "Loading MP3 from GitHub..."
+          : isPlayingAmbient
+          ? "Playing & looping white noise MP3..."
+          : "White Noise - 10hr long so you can sleep (Looping)";
+        const volPercent = Math.round(currentVolume * 100);
+
         widgetSlot.innerHTML = `
-          <div class="rounded-2xl border border-vaultBorder bg-obsidian-950/90 p-4 flex items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
-              <button id="ambient-toggle-btn" onclick="toggleAmbientSound()" class="w-11 h-11 rounded-2xl bg-crimson-950 hover:bg-crimson-900 border border-crimson-700/60 text-white flex items-center justify-center transition active:scale-95">
-                <svg id="ambient-icon-play" class="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                <svg id="ambient-icon-stop" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
-              </button>
-              <div>
-                <div class="text-xs font-semibold text-white">Midnight Drift Synth</div>
-                <div id="ambient-status" class="text-[11px] font-mono text-zinc-400">Tap play for warm ambient chords</div>
+          <div class="rounded-2xl border border-vaultBorder bg-obsidian-950/90 p-4 space-y-3.5">
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3 min-w-0">
+                <button id="ambient-toggle-btn" type="button" onclick="toggleAmbientSound()" class="w-11 h-11 shrink-0 rounded-2xl bg-crimson-950 hover:bg-crimson-900 border border-crimson-700/60 text-white flex items-center justify-center transition active:scale-95">
+                  <svg id="ambient-icon-play" class="w-5 h-5 ml-0.5 ${isPlayingAmbient ? "hidden" : ""}" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  <svg id="ambient-icon-stop" class="w-5 h-5 ${isPlayingAmbient ? "" : "hidden"}" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+                </button>
+                <div class="min-w-0">
+                  <div class="text-xs font-semibold text-white truncate">White Noise (MP3 • Loop)</div>
+                  <div id="ambient-status" class="text-[11px] font-mono text-zinc-400 truncate">${escapeHTML(initialStatus)}</div>
+                </div>
               </div>
+              <button
+                id="sleep-dim-btn"
+                type="button"
+                onclick="toggleSleepDim()"
+                class="shrink-0 px-3 py-2 rounded-xl border border-vaultBorder bg-obsidian-850 hover:border-crimson-700 text-[11px] font-mono text-zinc-300 hover:text-white transition cursor-pointer"
+              >
+                ${isSleepDimmed ? "Dim: 10% (On)" : "Dim 10%"}
+              </button>
             </div>
-            <div class="flex items-end gap-1 h-5 pr-2">
-              <span class="w-1 bg-crimson-600 rounded-full h-2 animate-pulse"></span>
-              <span class="w-1 bg-white/80 rounded-full h-4 animate-pulse"></span>
-              <span class="w-1 bg-crimson-600 rounded-full h-3 animate-pulse"></span>
+
+            <!-- iOS-Safe Volume Control -->
+            <div class="pt-2.5 border-t border-vaultBorder/80 flex items-center gap-3">
+              <span class="text-[11px] font-mono text-zinc-400 shrink-0">Volume</span>
+              <input
+                id="ambient-volume-slider"
+                type="range"
+                min="0"
+                max="100"
+                value="${volPercent}"
+                oninput="setAmbientVolume(this.value)"
+                onchange="setAmbientVolume(this.value)"
+                aria-label="White noise volume"
+                class="vault-slider w-full"
+              />
+              <span id="ambient-volume-label" class="text-[11px] font-mono text-zinc-300 w-10 text-right shrink-0">${volPercent}%</span>
             </div>
           </div>
         `;
@@ -781,18 +880,6 @@
             <button onclick="pickRandomFood()" class="mt-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-crimson-800 to-crimson-600 hover:from-crimson-700 hover:to-crimson-500 text-xs font-semibold text-white shadow-md transition active:scale-95">
               Pick Where We Eat
             </button>
-          </div>
-        `;
-      } else if (card.type === "polaroid") {
-        const imgSrc = card.photoUrl || "https://placehold.co/600x420/120b0d/ffffff?text=Add+Memory+Photo";
-        widgetSlot.innerHTML = `
-          <div class="bg-[#140d0f] p-3 pb-4 rounded-2xl border border-vaultBorder shadow-xl max-w-sm mx-auto transform -rotate-1">
-            <div class="rounded-xl overflow-hidden bg-obsidian-950 border border-vaultBorder">
-              <img src="${escapeHTML(imgSrc)}" alt="Polaroid Memory" onerror="this.src='https://placehold.co/600x420/120b0d/ffffff?text=Photo+Placeholder'" class="w-full h-48 object-cover" />
-            </div>
-            <div class="mt-3 text-center font-mono text-xs text-zinc-300">
-              ${escapeHTML(card.photoCaption || "N/A")}
-            </div>
           </div>
         `;
       } else if (card.type === "timelock") {
@@ -815,135 +902,208 @@
     }
 
     function closeLetterModal() {
+      toggleSleepDim(false);
       stopAmbientSound();
       const modal = document.getElementById("letter-modal");
       modal.classList.add("hidden");
       modal.classList.remove("flex");
     }
 
-    /**
-     * MINI INTERACTIVE WIDGET ACTIONS
-     */
-    function sendVirtualHug() {
-      hugCount += 1;
-      try {
-        localStorage.setItem("kiley_vault_hugs", String(hugCount));
-      } catch (e) {}
-      const counterEl = document.getElementById("hug-counter-val");
-      if (counterEl) counterEl.textContent = hugCount;
-      showToast("Virtual hug sent! ❤️");
-    }
+    document.getElementById("letter-modal").addEventListener("click", (e) => {
+      if (e.target.id === "letter-modal") {
+        closeLetterModal();
+      }
+    });
 
     function pickRandomFood() {
       const resultEl = document.getElementById("food-result");
       if (!resultEl) return;
 
+      if (foodSpinInterval) {
+        clearInterval(foodSpinInterval);
+      }
+
       const options = VAULT_CONFIG.foodOptions;
       let spins = 0;
       const maxSpins = 12;
 
-      const interval = setInterval(() => {
+      foodSpinInterval = setInterval(() => {
         const rand = options[Math.floor(Math.random() * options.length)];
         resultEl.textContent = rand;
         spins++;
         if (spins >= maxSpins) {
-          clearInterval(interval);
+          clearInterval(foodSpinInterval);
+          foodSpinInterval = null;
         }
       }, 65);
     }
 
     /**
-     * PURE WEB AUDIO API WARM AMBIENT CHORD SYNTH
+     * GITHUB MP3 WHITE NOISE AUDIO PLAYER (CONTINUOUS LOOP + iOS VOLUME SUPPORT)
      */
+    function setupIosGainChain(audioEl) {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+
+        if (!audioCtx) {
+          audioCtx = new AudioCtx();
+        }
+        if (!mediaSourceNode) {
+          audioEl.crossOrigin = "anonymous";
+          mediaSourceNode = audioCtx.createMediaElementSource(audioEl);
+          gainNode = audioCtx.createGain();
+          gainNode.gain.value = currentVolume;
+          mediaSourceNode.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+        } else if (gainNode) {
+          gainNode.gain.value = currentVolume;
+        }
+      } catch (e) {
+        // Fallback to standard HTMLAudioElement volume if Web Audio source fails
+      }
+    }
+
+    function applyVolumeToAudio() {
+      if (ambientAudio) {
+        try {
+          ambientAudio.volume = currentVolume;
+        } catch (e) {}
+      }
+      if (gainNode && audioCtx) {
+        try {
+          gainNode.gain.setValueAtTime(currentVolume, audioCtx.currentTime);
+        } catch (e) {
+          gainNode.gain.value = currentVolume;
+        }
+      }
+    }
+
+    function setAmbientVolume(percentValue) {
+      const clamped = Math.max(0, Math.min(100, Number(percentValue) || 0));
+      currentVolume = clamped / 100;
+
+      const labelEl = document.getElementById("ambient-volume-label");
+      if (labelEl) {
+        labelEl.textContent = `${clamped}%`;
+      }
+
+      const sliderEl = document.getElementById("ambient-volume-slider");
+      if (sliderEl && Number(sliderEl.value) !== clamped) {
+        sliderEl.value = String(clamped);
+      }
+
+      if (audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume().catch(() => {});
+      }
+
+      applyVolumeToAudio();
+    }
+
+    function ensureAmbientAudio() {
+      if (!ambientAudio) {
+        ambientAudio = new Audio();
+        ambientAudio.playsInline = true;
+        ambientAudio.loop = true;
+        ambientAudio.preload = "auto";
+        ambientAudio.src = VAULT_CONFIG.whiteNoiseMp3Url;
+        ambientAudio.volume = currentVolume;
+
+        ambientAudio.addEventListener("ended", () => {
+          if (!ambientAudio) return;
+          ambientAudio.currentTime = 0;
+          ambientAudio.loop = true;
+          ambientAudio.play().catch(() => {});
+        });
+
+        ambientAudio.addEventListener("error", () => {
+          isLoadingAmbient = false;
+          isPlayingAmbient = false;
+          setAmbientUiState(false, "MP3 not found on GitHub");
+          showToast("Check whiteNoiseMp3Url filename in EnvelopesK6m");
+        });
+      } else {
+        ambientAudio.playsInline = true;
+        ambientAudio.loop = true;
+        if (ambientAudio.src !== VAULT_CONFIG.whiteNoiseMp3Url) {
+          ambientAudio.src = VAULT_CONFIG.whiteNoiseMp3Url;
+        }
+      }
+
+      setupIosGainChain(ambientAudio);
+      applyVolumeToAudio();
+      return ambientAudio;
+    }
+
     function toggleAmbientSound() {
-      if (isPlayingAmbient) {
+      if (isPlayingAmbient || isLoadingAmbient) {
         stopAmbientSound();
         return;
       }
 
       try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!audioCtx) {
-          audioCtx = new AudioContextClass();
-        }
-        if (audioCtx.state === "suspended") {
-          audioCtx.resume();
+        const audio = ensureAmbientAudio();
+        if (audioCtx && audioCtx.state === "suspended") {
+          audioCtx.resume().catch(() => {});
         }
 
-        // Warm low-pass filter for mellow midnight pad sound
-        const filter = audioCtx.createBiquadFilter();
-        filter.type = "lowpass";
-        filter.frequency.setValueAtTime(520, audioCtx.currentTime);
-        filter.connect(audioCtx.destination);
+        isLoadingAmbient = true;
+        setAmbientUiState(false, "Loading MP3 from GitHub...");
 
-        const chords = [
-          [174.61, 220.00, 261.63, 329.63], // Fmaj7
-          [146.83, 174.61, 220.00, 261.63], // Dm7
-          [196.00, 246.94, 293.66, 349.23], // G7
-          [130.81, 164.81, 196.00, 246.94]  // Cmaj7
-        ];
-        let step = 0;
-
-        const playChord = (freqs) => {
-          if (!audioCtx) return;
-          const now = audioCtx.currentTime;
-          freqs.forEach((freq) => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = "sine";
-            osc.frequency.setValueAtTime(freq, now);
-
-            gain.gain.setValueAtTime(0.0001, now);
-            gain.gain.exponentialRampToValueAtTime(0.035, now + 1.1);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.9);
-
-            osc.connect(gain);
-            gain.connect(filter);
-
-            osc.start(now);
-            osc.stop(now + 4.0);
-            activeNodes.push(osc);
-          });
-        };
-
-        playChord(chords[0]);
-        ambientInterval = setInterval(() => {
-          step = (step + 1) % chords.length;
-          playChord(chords[step]);
-        }, 3800);
-
-        isPlayingAmbient = true;
-        document.getElementById("ambient-icon-play")?.classList.add("hidden");
-        document.getElementById("ambient-icon-stop")?.classList.remove("hidden");
-        const statusEl = document.getElementById("ambient-status");
-        if (statusEl) statusEl.textContent = "Playing warm ambient pad...";
+        const playPromise = audio.play();
+        if (playPromise && typeof playPromise.then === "function") {
+          playPromise
+            .then(() => {
+              isLoadingAmbient = false;
+              isPlayingAmbient = true;
+              setAmbientUiState(true, "Playing & looping white noise MP3...");
+            })
+            .catch(() => {
+              isLoadingAmbient = false;
+              isPlayingAmbient = false;
+              setAmbientUiState(false, "Tap play again to start MP3");
+            });
+        } else {
+          isLoadingAmbient = false;
+          isPlayingAmbient = true;
+          setAmbientUiState(true, "Playing & looping white noise MP3...");
+        }
       } catch (e) {
-        showToast("Tap again to enable audio playback");
+        isLoadingAmbient = false;
+        showToast("Unable to play MP3 audio");
       }
     }
 
     function stopAmbientSound() {
-      if (ambientInterval) {
-        clearInterval(ambientInterval);
-        ambientInterval = null;
-      }
-      activeNodes.forEach((osc) => {
+      isLoadingAmbient = false;
+      if (ambientAudio) {
         try {
-          osc.stop();
-          osc.disconnect();
+          ambientAudio.pause();
+          ambientAudio.currentTime = 0;
         } catch (e) {}
-      });
-      activeNodes = [];
+      }
       isPlayingAmbient = false;
-      document.getElementById("ambient-icon-play")?.classList.remove("hidden");
-      document.getElementById("ambient-icon-stop")?.classList.add("hidden");
-      const statusEl = document.getElementById("ambient-status");
-      if (statusEl) statusEl.textContent = "Tap play for warm ambient chords";
+      setAmbientUiState(false, "Tap play to loop MP3 from GitHub");
     }
 
-    /**
-     * TOAST & ESCAPE HELPERS
-     */
+    function setAmbientUiState(playing, statusText) {
+      const playIcon = document.getElementById("ambient-icon-play");
+      const stopIcon = document.getElementById("ambient-icon-stop");
+      const statusEl = document.getElementById("ambient-status");
+
+      if (playing) {
+        playIcon?.classList.add("hidden");
+        stopIcon?.classList.remove("hidden");
+      } else {
+        playIcon?.classList.remove("hidden");
+        stopIcon?.classList.add("hidden");
+      }
+
+      if (statusEl && statusText) {
+        statusEl.textContent = statusText;
+      }
+    }
+
     function showToast(msg) {
       const container = document.getElementById("toast-container");
       const toast = document.createElement("div");
@@ -971,7 +1131,6 @@
         .replace(/'/g, "&#039;");
     }
 
-    // Initialize on Window Load
     window.onload = function () {
       updateTimers();
       setInterval(updateTimers, 1000);
